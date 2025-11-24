@@ -6,7 +6,7 @@
 - **Region:** e.g. ap-southeast-1
 - **K8s:** v1.31 (kubeadm)
 - **CNI:** Calico (VXLAN) with podCIDR = 192.168.0.0/16
-- **Nodes:** 1× control plane (t3.medium), 2× workers (t3.small)
+- **Nodes:** 1× control plane (t3.small), 2× workers (t3.small)
 - **Runtime:** containerd (SystemdCgroup=true)
 - **Access:** AWS SSM Session Manager (no public SSH)
 - **Service exposure:** NodePort to start; add AWS Load Balancer Controller later if you want real LBs
