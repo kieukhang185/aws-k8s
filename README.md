@@ -16,6 +16,7 @@
 ---
 
 ## Diagram
+
 <div>
     <img src="src/aws-k8s.jpg" alt="Logo" width="300" height="200" style="display: block; margin: 0 auto;">
 </div>
