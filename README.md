@@ -15,6 +15,26 @@
 
 ---
 
+## Diagram
+<div>
+    <img src="src/aws-k8s.jpg" alt="Logo" width="300" height="200" style="display: block; margin: 0 auto;">
+</div>
+
+
+```nginx
+AWS Cloud
+ └─ VPC 10.100.0.0/16
+     ├─ Public Subnet (10.100.0.0/20)
+     │    └─ NAT Gateway → Internet Gateway
+     └─ Private Subnet AZ1 (10.100.32.0/20)
+          ├─ Control Plane EC2 (t3.medium)
+          └─ Private Subnet AZ1 (10.100.48.0/20)
+               ├─ Worker EC2 #1 (t3.small)
+               └─ Worker EC2 #2 (t3.small)
+```
+
+---
+
 ## Bootstrap Terraform state
 
 - **Goal:** remote state & locking so changes are safe.
