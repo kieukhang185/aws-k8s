@@ -66,6 +66,25 @@ variable "storage_size" {
   description = "Size of the EBS volume in GB"
 }
 
+variable "key_pair_name" { 
+  type = string
+  default = "khang-kieu-demo"
+  description = "Name of the existing AWS Key Pair to use for EC2 instances"
+}
+
+variable "desired_capacity" {
+  type = number
+  default = 2
+}
+variable "min_size" {
+  type = number
+  default = 2
+}
+variable "max_size" {
+  type = number
+  default = 4
+}
+
 variable "pod_cidr" {
   type        = string
   default     = "192.168.0.0/16"
@@ -106,4 +125,14 @@ variable "existing_kms_logs_id" {
   type        = string
   default     = ""
   description = "ID of the existing KMS key to use if use_existing_kms is true"
+}
+
+# thumbprint will be the Amazon S3 certificate thumbprint
+# you must fetch it once using openssl (see note below)
+# openssl s_client -servername $(terraform output -raw oidc_issuer_url | sed 's#https://##') \
+#   -connect $(terraform output -raw oidc_issuer_url | sed 's#https://##'):443 < /dev/null 2>/dev/null \
+#   | openssl x509 -noout -fingerprint -sha1
+variable "oidc_thumbprint" {
+  type        = string
+  description = "SHA1 thumbprint of the OIDC issuer TLS root certificate"
 }

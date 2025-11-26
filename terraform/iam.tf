@@ -16,7 +16,7 @@ data "aws_iam_policy_document" "ec2_assume_role_policy" {
 resource "aws_iam_role" "ec2_role"{
     name               = "${var.project_name}-ec2-role"
     assume_role_policy = data.aws_iam_policy_document.ec2_assume_role_policy.json
-    
+
     tags = {
         Name        = "${var.project_name}-ec2-role"
         Project     = var.project_name
@@ -84,11 +84,11 @@ resource "aws_iam_role_policy_attachment" "param_rw_attachment" {
 
 
 # OIDC provider (server URL comes from your cluster; supply data via kubernetes/auth or pass manually)
-# resource "aws_iam_openid_connect_provider" "oidc_provider" {
-#   url = var.oidc_provider_url
-#   # e.g. https://oidc.eks.<region>.amazonaws.com/id/<...> (for kubeadm you’ll use your API server OIDC URL if configured; or use IRSA helper like kiam/karpenter alt. If not using IRSA, skip.)
+resource "aws_iam_openid_connect_provider" "oidc_provider" {
+  url = aws_s3_object.oidc_openid_config.bucket != "" ? local.oidc_issuer_url : null
+  # e.g. https://oidc.eks.<region>.amazonaws.com/id/<...> (for kubeadm you’ll use your API server OIDC URL if configured; or use IRSA helper like kiam/karpenter alt. If not using IRSA, skip.)
 
-#   client_id_list = ["sts.amazonaws.com"]
+  client_id_list = ["sts.amazonaws.com"]
 
-#   thumbprint_list = [var.oidc_thumbprint]
-# }
+  thumbprint_list = [var.oidc_thumbprint]
+}
