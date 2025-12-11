@@ -1,44 +1,49 @@
+########################
+# Security Group for K8s nodes
+########################
 
-resource "aws_secrity_group" "allow_tls" {
-  name        = "${var.project_name}-allow-tls"
-  description = "Allow TLS inbound traffic"
+resource "aws_security_group" "cluster" {
+  name        = "${var.project}-cluster-sg"
+  description = "Security group for Kubernetes control plane and workers"
   vpc_id      = aws_vpc.main.id
-  tag = {
-    Name        = "${var.project_name}-allow-tls"
-    Project     = var.project_name
-    Environment = var.environment
-    Owner       = var.owner
+
+  # Intra-SG: allow all traffic between nodes
+  ingress {
+    description = "Allow all traffic within the SG"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
   }
-}
 
-resource "aws_security_group_ingress_rule" "allow_tls_ipv4" {
-  from_port         = 443
-  to_port           = 443
-  protocol          = "tcp"
-  security_group_id = aws_security_group.allow_tls.id
-  cidr_blocks       = [aws_vpc.main.cidr_block]
-}
+  # NodePort range from your IP (replace x.x.x.x/32 with your public IP)
+  ingress {
+    description = "NodePort access from admin IP"
+    from_port   = 30000
+    to_port     = 32767
+    protocol    = "tcp"
+    cidr_blocks = ["18.207.229.15/32"]
+  }
 
-resource "aws_security_group_ingress_rule" "allow_tls_ipv6" {
-  from_port         = 443
-  to_port           = 443
-  protocol          = "tcp"
-  security_group_id = aws_security_group.allow_tls.id
-  ipv6_cidr_blocks  = aws_vpc.main.ipv6_cidr_block_association_id
-}
+  # (Optional) SSH from your IP, if you want direct SSH in addition to SSM
+  # ingress {
+  #   description = "SSH from admin IP"
+  #   from_port   = 22
+  #   to_port     = 22
+  #   protocol    = "tcp"
+  #   cidr_blocks = ["YOUR.PUBLIC.IP.ADDR/32"]
+  # }
 
-resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv4" {
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
-  security_group_id = aws_security_group.allow_tls.id
-  cidr_blocks       = [aws_vpc.main.cidr_block]
-}
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv6" {
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
-  security_group_id = aws_security_group.allow_tls.id
-  ipv6_cidr_blocks  = [aws_vpc.main.ipv6_cidr_block_association_id]
+  tags = {
+    Name    = "${var.project}-cluster-sg"
+    Project = var.project
+  }
 }

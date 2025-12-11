@@ -1,138 +1,105 @@
-# Variable definitions for Terraform configuration
-
-variable "aws_region" {
-  type        = string
-  default     = "ap-southeast-1"
-  description = "AWS region to deploy resources"
-}
-
-variable "project_name" {
-  type        = string
-  default     = "k8s-cluster"
-  description = "Name of the project"
+variable "project" {
+  type    = string
+  default = "my-k8s"
 }
 
 variable "environment" {
-  type        = string
-  default     = "development"
-  description = "Deployment environment (e.g., development, staging, production)"
-}
-
-variable "project" {
-  type        = string
-  default     = "vtd-devops-khangkieu"
-  description = "Project identifier"
+  type    = string
+  default = "dev"
 }
 
 variable "owner" {
-  type        = string
-  default     = "khangkieu"
-  description = "Owner of the resources"
+  type    = string
+  default = "khangkieu"
 }
 
-variable "kubernetes_version" {
-  type        = string
-  default     = "1.31"
-  description = "Version of Kubernetes to deploy"
+variable "project_name" {
+  type    = string
+  default = "vtd-devops-khangkieu"
 }
 
-variable "instance_type" {
-  type        = string
-  default     = "t3.small"
-  description = "Type of AWS EC2 instance to use"
+variable "region" {
+  type    = string
+  default = "ap-southeast-1"
 }
 
-variable "node_count" {
-  type        = number
-  default     = 2
-  description = "Number of worker nodes in the Kubernetes cluster"
+# If you use existing VPC, set these IDs; otherwise define them in vpc.tf
+# variable "vpc_id"             { type = string }
+# variable "private_subnet_ids" { type = list(string) }
+# variable "cluster_sg_id"      { type = string }
+
+variable "instance_type_cp" {
+  type    = string
+  default = "t3.medium"
 }
 
-variable "vpc_cidr" {
-  type        = string
-  default     = "10.0.0.0/16"
-  description = "CIDR block for the VPC"
-}
-
-variable "storage_class" {
-  type        = string
-  default     = "gp3"
-  description = "EBS storage class type"
-}
-
-variable "storage_size" {
-  type        = number
-  default     = 20
-  description = "Size of the EBS volume in GB"
-}
-
-variable "key_pair_name" { 
-  type = string
-  default = "khang-kieu-demo"
-  description = "Name of the existing AWS Key Pair to use for EC2 instances"
+variable "instance_type_wk" {
+  type    = string
+  default = "t3.small"
 }
 
 variable "desired_capacity" {
-  type = number
+  type    = number
   default = 2
 }
+
 variable "min_size" {
-  type = number
+  type    = number
   default = 2
 }
+
 variable "max_size" {
-  type = number
+  type    = number
   default = 4
 }
 
+variable "key_pair_name" {
+  type    = string
+  default = ""
+}
+
 variable "pod_cidr" {
+  type    = string
+  default = "192.168.0.0/16"
+}
+
+variable "ssm_join_parameter_name" {
+  type    = string
+  default = "/kubeadm/join"
+}
+
+# OIDC bits
+variable "sa_private_key_path" {
   type        = string
-  default     = "192.168.0.0/16"
-  description = "CIDR block for the Kubernetes pods"
+  description = "Path to service-account private key PEM file"
 }
 
-variable "systemd_cgroup" {
-  type        = bool
-  default     = true
-  description = "Whether to enable SystemdCgroup for containerd"
-}
-
-variable "use_existing_vpc" {
-  type        = bool
-  default     = false
-  description = "Whether to use an existing VPC"
-}
-
-variable "existing_vpc_id" {
+variable "sa_public_key_path" {
   type        = string
-  default     = ""
-  description = "ID of the existing VPC to use if use_existing_vpc is true"
+  description = "PEM content of service-account public key"
+}
+
+variable "oidc_jwks_json_path" {
+  type        = string
+  description = "Path to JWKS JSON derived from sa_public_key_pem"
+}
+
+variable "oidc_thumbprint" {
+  type        = string
+  description = "SHA1 thumbprint of the S3 HTTPS cert"
 }
 
 variable "use_existing_kms" {
-  type        = bool
-  default     = false
-  description = "Whether to use an existing KMS key"
+  type    = bool
+  default = false
 }
 
-variable "existing_kms_state_id" {
-  type        = string
-  default     = ""
-  description = "ID of the existing KMS key to use if use_existing_kms is true"
+variable "existing_kms_id" {
+  type    = string
+  default = ""
 }
 
-variable "existing_kms_logs_id" {
-  type        = string
-  default     = ""
-  description = "ID of the existing KMS key to use if use_existing_kms is true"
-}
-
-# thumbprint will be the Amazon S3 certificate thumbprint
-# you must fetch it once using openssl (see note below)
-# openssl s_client -servername $(terraform output -raw oidc_issuer_url | sed 's#https://##') \
-#   -connect $(terraform output -raw oidc_issuer_url | sed 's#https://##'):443 < /dev/null 2>/dev/null \
-#   | openssl x509 -noout -fingerprint -sha1
-variable "oidc_thumbprint" {
-  type        = string
-  description = "SHA1 thumbprint of the OIDC issuer TLS root certificate"
+variable "oidc_issuer_url" {
+  type    = string
+  default = ""
 }

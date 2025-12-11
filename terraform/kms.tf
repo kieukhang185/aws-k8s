@@ -1,6 +1,4 @@
 
-data "aws_caller_identity" "current" {}
-
 resource "aws_kms_key" "s3_state" {
   count                   = var.use_existing_kms == false ? 1 : 0
   description             = "A new KMS key managed by Terraform"
@@ -44,12 +42,13 @@ data "aws_kms_key" "existing_s3_logs" {
 resource "aws_kms_alias" "s3_state" {
   count         = var.use_existing_kms == false ? 1 : 0
   name          = "alias/terraform-state-key"
-  target_key_id = aws_kms_key.new[0].id
+  target_key_id = aws_kms_key.s3_state[0].id
 }
 
 resource "aws_kms_alias" "s3_logs" {
+  count         = var.use_existing_kms == false ? 1 : 0
   name          = "alias/s3-logs-kms"
-  target_key_id = aws_kms_key.s3_logs.key_id
+  target_key_id = aws_kms_key.s3_logs[0].id
 }
 
 data "aws_iam_policy_document" "kms_s3_state" {
@@ -85,7 +84,7 @@ data "aws_iam_policy_document" "kms_s3_state" {
   }
 }
 
-resource "aws_iam_policy_document" "kms_s3_logs" {
+data "aws_iam_policy_document" "kms_s3_logs" {
   statement {
     sid    = "EnableRootAdmin"
     effect = "Allow"
@@ -103,7 +102,7 @@ resource "aws_iam_policy_document" "kms_s3_logs" {
   statement {
     sid    = "AllowUseFromThisAccount"
     effect = "Allow"
-    acctions = [
+    actions = [
       "kms:Encrypt", "kms:Decrypt", "kms:ReEncrypt*", "kms:GenerateDataKey*", "kms:DescribeKey"
     ]
     principals {
