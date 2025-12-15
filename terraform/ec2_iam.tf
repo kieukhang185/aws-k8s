@@ -1,4 +1,4 @@
-
+data "aws_caller_identity" "current" {}
 # IAM Role and Instance Profile for EC2 Instances
 data "aws_iam_policy_document" "ec2_assume_role_policy" {
   statement {
@@ -50,10 +50,9 @@ data "aws_iam_policy_document" "param_rw_assume_role_policy" {
   }
 }
 
-resource "aws_iam_role" "param_rw_role" {
+resource "aws_iam_policy" "param_rw_role" {
   name   = "${var.project_name}-param-rw-role"
-#   policy = data.aws_iam_policy_document.param_rw_assume_role_policy.json
-  assume_role_policy = data.aws_iam_policy_document.param_rw_assume_role_policy.json
+  policy = data.aws_iam_policy_document.param_rw_assume_role_policy.json
   tags = {
     Name        = "${var.project_name}-param-rw-role"
     Project     = var.project_name
@@ -62,10 +61,10 @@ resource "aws_iam_role" "param_rw_role" {
   }
 }
 
-# resource "aws_iam_role_policy_attachment" "param_rw_attachment" {
-#   role       = aws_iam_role.param_rw_role.name
-#   policy_arn = aws_iam_policy.param_rw_assume_role_policy.arn
-# }
+resource "aws_iam_role_policy_attachment" "param_rw_attachment" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = aws_iam_policy.param_rw_role.arn
+}
 
 # IAM for s3 access
 # data "aws_iam_policy_document" "s3_access_assume_role_policy" {
@@ -82,7 +81,7 @@ resource "aws_iam_role" "param_rw_role" {
 
 # OIDC provider (server URL comes from your cluster; supply data via kubernetes/auth or pass manually)
 resource "aws_iam_openid_connect_provider" "oidc_provider" {
-  url = aws_s3_object.openid_configuration.bucket != "" ? local.oidc_issuer_url : null
+  url = var.oidc_issuer_url
   # e.g. https://oidc.eks.<region>.amazonaws.com/id/<...> (for kubeadm you’ll use your API server OIDC URL if configured; or use IRSA helper like kiam/karpenter alt. If not using IRSA, skip.)
 
   client_id_list = ["sts.amazonaws.com"]

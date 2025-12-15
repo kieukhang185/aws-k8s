@@ -1,9 +1,9 @@
-locals {
-  wk_user_data = templatefile("${path.module}/user_data/worker.sh.tmpl", {
-    AWS_REGION              = var.region
-    SSM_JOIN_PARAMETER_NAME = var.ssm_join_parameter_name
-  })
-}
+# locals {
+#   wk_user_data = templatefile("${path.module}/user_data/worker.sh.tmpl", {
+#     AWS_REGION              = var.region
+#     SSM_JOIN_PARAMETER_NAME = var.ssm_join_parameter_name
+#   })
+# }
 
 resource "aws_launch_template" "workers" {
   name_prefix   = "${var.project}-wk-"

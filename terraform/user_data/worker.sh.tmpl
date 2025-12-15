@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+AWS_REGION="${AWS_REGION}"
+SSM_JOIN_PARAMETER_NAME="${SSM_JOIN_PARAMETER_NAME}"
+
+echo "[worker] Starting bootstrap..."
+
+#######################################
+# Basic OS prep
+#######################################
+echo "[worker] Disabling swap..."
+swapoff -a || true
+sed -i '/ swap / s/^/#/' /etc/fstab || true
+
+echo "[worker] Installing base packages..."
+apt-get update -y
+apt-get install -y apt-transport-https ca-certificates curl gnupg jq awscli
+
+echo "[worker] Configuring sysctl for Kubernetes..."
+modprobe overlay
+modprobe br_netfilter
+cat <<EOF >/etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+EOF
+sysctl --system
+
+#######################################
+# containerd
+#######################################
+echo "[worker] Installing containerd..."
+apt-get install -y containerd
+
+mkdir -p /etc/containerd
+if [ ! -f /etc/containerd/config.toml ]; then
+  containerd config default > /etc/containerd/config.toml
+fi
+
+sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+
+systemctl enable --now containerd
+
+#######################################
+# Kubernetes packages
+#######################################
+echo "[worker] Installing kubeadm, kubelet, kubectl..."
+
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key \
+  | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /" \
+  > /etc/apt/sources.list.d/kubernetes.list
+
+apt-get update -y
+apt-get install -y kubelet kubeadm kubectl
+apt-mark hold kubelet kubeadm kubectl
+
+cat <<EOF >/etc/crictl.yaml
+runtime-endpoint: unix:///run/containerd/containerd.sock
+image-endpoint: unix:///run/containerd/containerd.sock
+timeout: 10
+debug: false
+EOF
+
+#######################################
+# Fetch join command from SSM and join
+#######################################
+echo "[worker] Fetching kubeadm join command from SSM Parameter Store..."
+
+for i in $(seq 1 30); do
+  echo "[worker] Attempt ${i}/30 to get join command..."
+  if JOIN_CMD_JSON="$(aws ssm get-parameter --region "${AWS_REGION}" --name "${SSM_JOIN_PARAMETER_NAME}" 2>/dev/null)"; then
+    JOIN_CMD="$(echo "${JOIN_CMD_JSON}" | jq -r '.Parameter.Value')"
+    echo "[worker] Got join command: ${JOIN_CMD}"
+    echo "[worker] Executing join command..."
+    if eval "sudo ${JOIN_CMD}"; then
+      echo "[worker] Successfully joined cluster."
+      exit 0
+    else
+      echo "[worker] Join command failed, retrying..."
+    fi
+  fi
+  sleep 10
+done
+
+echo "[worker] ERROR: failed to join cluster after 30 attempts."
+exit 1
