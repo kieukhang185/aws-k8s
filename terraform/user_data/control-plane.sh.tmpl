@@ -6,12 +6,15 @@ AWS_REGION="${AWS_REGION}"
 SSM_JOIN_PARAMETER_NAME="${SSM_JOIN_PARAMETER_NAME}"
 OIDC_ISSUER_URL="${OIDC_ISSUER_URL}"
 
+SA_PRIVATE_KEY_PEM="${SA_PRIVATE_KEY_PEM}"
+SA_PUBLIC_KEY_PEM="${SA_PUBLIC_KEY_PEM}"
+
 # Basic OS prep
 swapoff -a
 sed -i '/ swap / s/^/#/' /etc/fstab
 
 apt-get update -y
-apt-get install -y apt-transport-https ca-certificates curl gnupg jq awscli
+apt-get install -y apt-transport-https ca-certificates curl gnupg jq awscli conntrack
 
 modprobe overlay
 modprobe br_netfilter
@@ -46,21 +49,60 @@ timeout: 10
 debug: false
 EOF
 
+mkdir -p /etc/kubernetes/pki
+chmod 700 /etc/kubernetes/pki
+
+cat <<EOF >/etc/kubernetes/pki/sa.key
+${SA_PRIVATE_KEY_PEM}
+EOF
+
+cat <<EOF >/etc/kubernetes/pki/sa.pub
+${SA_PUBLIC_KEY_PEM}
+EOF
+
+chmod 600 /etc/kubernetes/pki/sa.key
+chmod 644 /etc/kubernetes/pki/sa.pub
+
 MASTER_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
 
 # kubeadm init with OIDC enabled
-kubeadm init \
-  --apiserver-advertise-address="${MASTER_IP}" \
-  --pod-network-cidr="${POD_CIDR}" \
-  --service-account-issuer="${OIDC_ISSUER_URL}" \
-  --service-account-signing-key-file=/etc/kubernetes/pki/sa.key \
-  --service-account-key-file=/etc/kubernetes/pki/sa.pub | tee /root/kubeadm-init.log
+mkdir -p /etc/kubernetes/kubeadm
+cat <<EOF >/etc/kubernetes/kubeadm/kubeadm-config.yaml
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: "${MASTER_IP}"
+  bindPort: 6443
+nodeRegistration:
+  criSocket: "unix:///run/containerd/containerd.sock"
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+clusterName: "kubernetes"
+kubernetesVersion: "v1.31.0"
+networking:
+  podSubnet: "${POD_CIDR}"
+apiServer:
+  extraArgs:
+    # OIDC issuer served from your S3 (or other) endpoint
+    service-account-issuer: "${OIDC_ISSUER_URL}"
+    service-account-jwks-uri: "${OIDC_ISSUER_URL}/openid/v1/jwks"
+    # use our signing key (matches JWKS)
+    service-account-signing-key-file: "/etc/kubernetes/pki/sa.key"
+EOF
+
+kubeadm init --config /etc/kubernetes/kubeadm/kubeadm-config.yaml \
+  | tee /root/kubeadm-init.log
 
 # kubeconfig for ubuntu (or ec2-user, adjust if needed)
-USER_HOME="/home/ubuntu"
+USER_NAME="ubuntu"
+USER_HOME="/home/${USER_NAME}"
 mkdir -p "${USER_HOME}/.kube"
 cp /etc/kubernetes/admin.conf "${USER_HOME}/.kube/config"
 chown -R ubuntu:ubuntu "${USER_HOME}/.kube"
+
+mkdir -p /root/.kube
+cp /etc/kubernetes/admin.conf /root/.kube/config
 
 # Install Calico CNI
 sudo -u ubuntu kubectl apply -f \

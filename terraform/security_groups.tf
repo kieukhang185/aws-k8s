@@ -25,14 +25,23 @@ resource "aws_security_group" "cluster" {
     cidr_blocks = ["18.207.229.15/32"]
   }
 
+  # allow 6443 from worker SG
+  ingress {
+    description = "API server from worker nodes"
+    from_port   = 6443
+    to_port     = 6443
+    protocol    = "tcp"
+    security_groups = [aws_security_group.worker.id]
+  }
+
   # (Optional) SSH from your IP, if you want direct SSH in addition to SSM
-  # ingress {
-  #   description = "SSH from admin IP"
-  #   from_port   = 22
-  #   to_port     = 22
-  #   protocol    = "tcp"
-  #   cidr_blocks = ["YOUR.PUBLIC.IP.ADDR/32"]
-  # }
+  ingress {
+    description = "SSH from admin IP"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   egress {
     description = "Allow all outbound"
@@ -44,6 +53,6 @@ resource "aws_security_group" "cluster" {
 
   tags = {
     Name    = "${var.project}-cluster-sg"
-    Project = var.project
+    Project = var.project_name
   }
 }

@@ -1,12 +1,16 @@
 
 # Variable
-REGION ?= ap-southeast-1
-PROJECT ?= my-k8s
-TARGET ?= all
+REGION ?= "ap-southeast-1"
+PROJECT ?= "my-k8s"
+TARGET ?= "all"
 
 OIDC_ISSUER_URL ?= ""
+OIDC_ISSUER_HOST_URL ?= ""
+OIDC_THUMBPRINT ?= ""
 
 .PHONY: clean help deploy destroy oidc-deploy oidc-destroy
+
+SHELL := /bin/bash
 
 # Target: help
 help:
@@ -17,9 +21,7 @@ help:
 
 oidc-deploy:
 	@echo "Setting up OIDC provider..."
-	cd terraform/oidc-s3 && terraform init && terraform apply -auto-approve && \
-		OIDC_ISSUER_URL=$$(terraform output -raw oidc_issuer_url) && \
-		OIDC_ISSUER_HOST_URL=$$(echo $$OIDC_ISSUER_URL | sed 's|https://||') && \
+	cd terraform/oidc-s3 && terraform init && terraform apply -auto-approve
 
 oidc-destroy:
 	@echo "Destroying OIDC provider..."
@@ -27,7 +29,11 @@ oidc-destroy:
 
 deploy: oidc-deploy
 	@echo "Deploying the application..."
-	cd terraform && terraform init && terraform apply -auto-approve
+	eval $$(bash ./get-oidc-info.sh); \
+	cd terraform && terraform init && terraform apply \
+		-var="oidc_issuer_url=$$OIDC_ISSUER_HOST" \
+		-var="oidc_thumbprint=$$OIDC_THUMBPRINT" \
+		-auto-approve
 
 destroy: oidc-destroy
 	@echo "Destroying the deployed application..."
@@ -35,14 +41,10 @@ destroy: oidc-destroy
 
 clean-oidc:
 	@echo "Cleaning up OIDC provider..."
-	rm -rf terraform/oidc-s3/.terraform
-	rm -f terraform/oidc-s3/terraform.tfstate terraform/oidc-s3/terraform.tfstate.backup
-	rm -f terraform/oidc-s3/.terraform.lock.hcl
+	rm -rf terraform/oidc-s3/.terraform*
+	rm -rf terraform/oidc-s3/terraform.tfstate*
 
 clean-all:
 	@echo "Cleaning up..."
-	rm -rf terraform/.terraform terraform/oidc-s3/.terraform
-	rm -f terraform/terraform.tfstate terraform/terraform.tfstate.backup
-	rm -f terraform/oidc-s3/terraform.tfstate terraform/oidc-s3/terraform.tfstate.backup
-	rm -f terraform/oidc-s3/.terraform.lock.hcl
-	rm -f terraform/.terraform.lock.hcl
+	rm -rf terraform/.terraform* terraform/oidc-s3/.terraform*
+	rm -rf terraform/terraform.tfstate* terraform/oidc-s3/terraform.tfstate*

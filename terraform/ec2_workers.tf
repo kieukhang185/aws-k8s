@@ -25,7 +25,7 @@ resource "aws_launch_template" "workers" {
     resource_type = "instance"
     tags = {
       Name    = "${var.project}-wk"
-      Project = var.project
+      Project = var.project_name
       Role    = "worker"
     }
   }

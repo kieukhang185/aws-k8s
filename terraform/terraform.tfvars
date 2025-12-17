@@ -2,6 +2,8 @@ project = "my-k8s"
 region  = "ap-southeast-1"
 
 # Map local files into variables
+# openssl genrsa -out sa.key 2048
+# openssl rsa -in sa.key -pubout -out sa.pub
 sa_private_key_path = "./keys/sa.key"
 sa_public_key_path  = "./keys/sa.pub"
 oidc_jwks_json_path     = "./keys/sa.jwks.json"

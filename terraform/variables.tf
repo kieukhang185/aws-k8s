@@ -55,7 +55,7 @@ variable "max_size" {
 
 variable "key_pair_name" {
   type    = string
-  default = ""
+  default = "khang-kieu-demo"
 }
 
 variable "pod_cidr" {

@@ -22,8 +22,14 @@ data "aws_ami" "ubuntu_jammy" {
 #     AWS_REGION              = var.region
 #     SSM_JOIN_PARAMETER_NAME = var.ssm_join_parameter_name
 #     OIDC_ISSUER_URL         = var.oidc_issuer_url
+#     SA_PRIVATE_KEY_PATH     = var.sa_private_key_path
+#     SA_PUBLIC_KEY_PATH      = var.sa_public_key_path
 #   })
 # }
+
+
+# An error occurred (AccessDeniedException) when calling the StartSession operation: User: arn:aws:sts::116981769322:assumed-role/vtd-devops-khangkieu-ec2-role/i-0a66c24bc771f3736 
+# is not authorized to perform: ssm:StartSession on resource: arn:aws:ssm:ap-southeast-1:116981769322:document/SSM-SessionManagerRunShell because no identity-based policy allows the ssm:StartSession action
 
 resource "aws_instance" "control_plane" {
   ami                    = data.aws_ami.ubuntu_jammy.id
@@ -36,9 +42,17 @@ resource "aws_instance" "control_plane" {
 
 #   user_data = base64encode(local.cp_user_data)
 
+  ingress {
+    description = "Allow all traffic within the SG"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
+  }
+
   tags = {
     Name      = "${var.project}-cp"
-    Project   = var.project
+    Project   = var.project_name
     Role      = "control-plane"
     ManagedBy = "terraform"
   }
