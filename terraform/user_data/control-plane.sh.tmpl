@@ -16,8 +16,11 @@ sed -i '/ swap / s/^/#/' /etc/fstab
 apt-get update -y
 apt-get install -y apt-transport-https ca-certificates curl gnupg jq awscli conntrack
 
+# load dynamic kernel modules and set sysctl params for k8s
 modprobe overlay
 modprobe br_netfilter
+
+# sysctl params
 cat <<EOF >/etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables  = 1
@@ -42,6 +45,7 @@ apt-get update -y
 apt-get install -y kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl
 
+# crictl config
 cat <<EOF >/etc/crictl.yaml
 runtime-endpoint: unix:///run/containerd/containerd.sock
 image-endpoint: unix:///run/containerd/containerd.sock
@@ -49,6 +53,7 @@ timeout: 10
 debug: false
 EOF
 
+# Setup service account keys
 mkdir -p /etc/kubernetes/pki
 chmod 700 /etc/kubernetes/pki
 
@@ -91,6 +96,7 @@ apiServer:
     service-account-signing-key-file: "/etc/kubernetes/pki/sa.key"
 EOF
 
+# Initialize the control plane
 kubeadm init --config /etc/kubernetes/kubeadm/kubeadm-config.yaml \
   | tee /root/kubeadm-init.log
 

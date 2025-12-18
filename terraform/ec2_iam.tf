@@ -12,11 +12,11 @@ data "aws_iam_policy_document" "ec2_assume_role_policy" {
 }
 
 resource "aws_iam_role" "ec2_role" {
-  name               = "${var.project_name}-ec2-role"
+  name               = "${var.project}-ec2-role"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role_policy.json
 
   tags = {
-    Name        = "${var.project_name}-ec2-role"
+    Name        = "${var.project}-ec2-role"
     Project     = var.project_name
     Environment = var.environment
     Owner       = var.owner
@@ -34,27 +34,35 @@ resource "aws_iam_role_policy_attachment" "ecr_ro" {
 }
 
 resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "${var.project_name}-ec2-profile"
+  name = "${var.project}-ec2-profile"
   role = aws_iam_role.ec2_role.name
 }
 
 # IAM for KUBE join
 data "aws_iam_policy_document" "param_rw_assume_role_policy" {
+  # ssm start session
+  statement {
+    actions = ["ec2:*", "ssm:StartSession"]
+    resources = [
+      "arn:aws:ssm:*:*:document/SSM-SessionManagerRunShell",
+      "arn:aws:ec2:${var.region}:${data.aws_caller_identity.current.account_id}:instance/*"
+    ]
+  }
   statement {
     actions   = ["ssm:PutParameter"]
-    resources = ["arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}/k8s/join"]
+    resources = ["arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter/${var.project}/k8s/join"]
   }
   statement {
     actions   = ["ssm:GetParameter", "ssm:GetParameters"]
-    resources = ["arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}/k8s/join"]
+    resources = ["arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter/${var.project}/k8s/join"]
   }
 }
 
 resource "aws_iam_policy" "param_rw_role" {
-  name   = "${var.project_name}-param-rw-role"
+  name   = "${var.project}-param-rw-role"
   policy = data.aws_iam_policy_document.param_rw_assume_role_policy.json
   tags = {
-    Name        = "${var.project_name}-param-rw-role"
+    Name        = "${var.project}-param-rw-role"
     Project     = var.project_name
     Environment = var.environment
     Owner       = var.owner
@@ -82,9 +90,6 @@ resource "aws_iam_role_policy_attachment" "param_rw_attachment" {
 # OIDC provider (server URL comes from your cluster; supply data via kubernetes/auth or pass manually)
 resource "aws_iam_openid_connect_provider" "oidc_provider" {
   url = var.oidc_issuer_url
-  # e.g. https://oidc.eks.<region>.amazonaws.com/id/<...> (for kubeadm you’ll use your API server OIDC URL if configured; or use IRSA helper like kiam/karpenter alt. If not using IRSA, skip.)
-
   client_id_list = ["sts.amazonaws.com"]
-
   thumbprint_list = [var.oidc_thumbprint]
 }

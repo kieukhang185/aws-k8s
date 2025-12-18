@@ -1,7 +1,4 @@
-########################
 # Security Group for K8s nodes
-########################
-
 resource "aws_security_group" "cluster" {
   name        = "${var.project}-cluster-sg"
   description = "Security group for Kubernetes control plane and workers"

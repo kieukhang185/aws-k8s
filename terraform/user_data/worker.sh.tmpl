@@ -6,9 +6,7 @@ SSM_JOIN_PARAMETER_NAME="${SSM_JOIN_PARAMETER_NAME}"
 
 echo "[worker] Starting bootstrap..."
 
-#######################################
 # Basic OS prep
-#######################################
 echo "[worker] Disabling swap..."
 swapoff -a || true
 sed -i '/ swap / s/^/#/' /etc/fstab || true
@@ -27,9 +25,7 @@ net.ipv4.ip_forward                 = 1
 EOF
 sysctl --system
 
-#######################################
 # containerd
-#######################################
 echo "[worker] Installing containerd..."
 apt-get install -y containerd
 
@@ -42,9 +38,7 @@ sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.to
 
 systemctl enable --now containerd
 
-#######################################
 # Kubernetes packages
-#######################################
 echo "[worker] Installing kubeadm, kubelet, kubectl..."
 
 mkdir -p /etc/apt/keyrings
@@ -65,11 +59,8 @@ timeout: 10
 debug: false
 EOF
 
-#######################################
 # Fetch join command from SSM and join
-#######################################
 echo "[worker] Fetching kubeadm join command from SSM Parameter Store..."
-
 for i in $(seq 1 30); do
   echo "[worker] Attempt ${i}/30 to get join command..."
   if JOIN_CMD_JSON="$(aws ssm get-parameter --region "${AWS_REGION}" --name "${SSM_JOIN_PARAMETER_NAME}" 2>/dev/null)"; then
