@@ -1,4 +1,4 @@
-
+# --- KMS Configuration ---
 resource "aws_kms_key" "s3_state" {
   count                   = var.use_existing_kms == false ? 1 : 0
   description             = "A new KMS key managed by Terraform"

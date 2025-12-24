@@ -1,9 +1,10 @@
-# locals {
-#   wk_user_data = templatefile("${path.module}/user_data/worker.sh.tmpl", {
-#     AWS_REGION              = var.region
-#     SSM_JOIN_PARAMETER_NAME = var.ssm_join_parameter_name
-#   })
-# }
+# --- EC2 Workers ---
+locals {
+  wk_user_data = templatefile("${path.module}/user_data/worker.sh.tmpl", {
+    AWS_REGION              = var.region
+    SSM_JOIN_PARAMETER_NAME = var.ssm_join_parameter_name
+  })
+}
 
 resource "aws_launch_template" "workers" {
   name_prefix   = "${var.project}-wk-"
@@ -19,7 +20,7 @@ resource "aws_launch_template" "workers" {
   }
 
   key_name  = var.key_pair_name != "" ? var.key_pair_name : null
-  # user_data = base64encode(local.wk_user_data)
+  user_data = base64encode(local.wk_user_data)
 
   tag_specifications {
     resource_type = "instance"

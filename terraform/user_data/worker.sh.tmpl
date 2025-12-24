@@ -13,7 +13,7 @@ sed -i '/ swap / s/^/#/' /etc/fstab || true
 
 echo "[worker] Installing base packages..."
 apt-get update -y
-apt-get install -y apt-transport-https ca-certificates curl gnupg jq awscli
+apt-get install -y apt-transport-https ca-certificates curl gnupg jq awscli conntrack
 
 echo "[worker] Configuring sysctl for Kubernetes..."
 modprobe overlay
@@ -62,12 +62,10 @@ EOF
 # Fetch join command from SSM and join
 echo "[worker] Fetching kubeadm join command from SSM Parameter Store..."
 for i in $(seq 1 30); do
-  echo "[worker] Attempt ${i}/30 to get join command..."
-  if JOIN_CMD_JSON="$(aws ssm get-parameter --region "${AWS_REGION}" --name "${SSM_JOIN_PARAMETER_NAME}" 2>/dev/null)"; then
-    JOIN_CMD="$(echo "${JOIN_CMD_JSON}" | jq -r '.Parameter.Value')"
-    echo "[worker] Got join command: ${JOIN_CMD}"
+  if $(aws ssm get-parameter --region "${AWS_REGION}" --name "${SSM_JOIN_PARAMETER_NAME}" 2>/dev/null) then
+    echo "[worker] Got join command: $(echo $(aws ssm get-parameter --region "${AWS_REGION}" --name ${SSM_JOIN_PARAMETER_NAME}) | jq -r '.Parameter.Value')"
     echo "[worker] Executing join command..."
-    if eval "sudo ${JOIN_CMD}"; then
+    if eval "sudo $(echo $(aws ssm get-parameter --region "${AWS_REGION}" --name ${SSM_JOIN_PARAMETER_NAME}) | jq -r '.Parameter.Value')"; then
       echo "[worker] Successfully joined cluster."
       exit 0
     else

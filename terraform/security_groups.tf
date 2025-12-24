@@ -28,7 +28,7 @@ resource "aws_security_group" "cluster" {
     from_port   = 6443
     to_port     = 6443
     protocol    = "tcp"
-    security_groups = [aws_security_group.worker.id]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   # (Optional) SSH from your IP, if you want direct SSH in addition to SSM

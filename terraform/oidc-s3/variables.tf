@@ -1,3 +1,4 @@
+# --- Variables ---
 variable "project" {
   type    = string
   default = "my-k8s"

@@ -1,3 +1,4 @@
+#!/bin/bash
 # Setup Tool, dependencies, and Environment Variables
 
 echo "APT Update"

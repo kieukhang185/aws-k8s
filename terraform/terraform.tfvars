@@ -1,3 +1,4 @@
+# --- Terraform Variables ---
 project = "my-k8s"
 region  = "ap-southeast-1"
 
@@ -18,4 +19,4 @@ oidc_jwks_json_path     = "./keys/sa.jwks.json"
 # oidc_issuer_url = "https://my-k8s-oidc-116981769322-ap-southeast-1.s3.ap-southeast-1.amazonaws.com"
 
 oidc_thumbprint = "257753EF33DB8CA5F8A03D9D6CACAE2A9007A065"
-oidc_issuer_url = "https://my-k8s-oidc-116981769322-ap-southeast-1.s3.ap-southeast-1.amazonaws.com"
+oidc_issuer_url = "https://my-k8s-oidc-ap-southeast-1.s3.ap-southeast-1.amazonaws.com"

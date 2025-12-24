@@ -68,7 +68,7 @@ EOF
 chmod 600 /etc/kubernetes/pki/sa.key
 chmod 644 /etc/kubernetes/pki/sa.pub
 
-MASTER_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+# MASTER_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
 
 # kubeadm init with OIDC enabled
 mkdir -p /etc/kubernetes/kubeadm
@@ -76,7 +76,7 @@ cat <<EOF >/etc/kubernetes/kubeadm/kubeadm-config.yaml
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: "${MASTER_IP}"
+  advertiseAddress: "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
   bindPort: 6443
 nodeRegistration:
   criSocket: "unix:///run/containerd/containerd.sock"
@@ -101,11 +101,10 @@ kubeadm init --config /etc/kubernetes/kubeadm/kubeadm-config.yaml \
   | tee /root/kubeadm-init.log
 
 # kubeconfig for ubuntu (or ec2-user, adjust if needed)
-USER_NAME="ubuntu"
-USER_HOME="/home/${USER_NAME}"
-mkdir -p "${USER_HOME}/.kube"
-cp /etc/kubernetes/admin.conf "${USER_HOME}/.kube/config"
-chown -R ubuntu:ubuntu "${USER_HOME}/.kube"
+# USER_HOME="/home/ubuntu"
+mkdir -p "/home/ubuntu/.kube"
+cp /etc/kubernetes/admin.conf "/home/ubuntu/.kube/config"
+chown -R ubuntu:ubuntu "/home/ubuntu/.kube"
 
 mkdir -p /root/.kube
 cp /etc/kubernetes/admin.conf /root/.kube/config
@@ -115,10 +114,10 @@ sudo -u ubuntu kubectl apply -f \
   https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
 
 # Generate join command and store in SSM Parameter Store
-JOIN_CMD="$(kubeadm token create --print-join-command)"
+# JOIN_CMD="$(kubeadm token create --print-join-command)"
 aws ssm put-parameter \
   --region "${AWS_REGION}" \
   --name "${SSM_JOIN_PARAMETER_NAME}" \
   --type String \
   --overwrite \
-  --value "${JOIN_CMD}"
+  --value "$(kubeadm token create --print-join-command)"

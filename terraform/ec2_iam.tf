@@ -1,3 +1,4 @@
+# --- EC2 IAM Roles and Policies ---
 data "aws_caller_identity" "current" {}
 # IAM Role and Instance Profile for EC2 Instances
 data "aws_iam_policy_document" "ec2_assume_role_policy" {

@@ -1,7 +1,7 @@
-data "aws_caller_identity" "current" {}
+# --- OIDC S3 Bucket Configuration ---
 
 locals {
-  oidc_bucket_name = "${var.project}-oidc-${data.aws_caller_identity.current.account_id}-${var.region}"
+  oidc_bucket_name = "${var.project}-oidc-${var.region}"
 }
 
 resource "aws_s3_bucket" "oidc" {

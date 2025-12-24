@@ -1,3 +1,4 @@
+# --- Variables ---
 variable "project" {
   type    = string
   default = "my-k8s"
@@ -55,7 +56,7 @@ variable "max_size" {
 
 variable "key_pair_name" {
   type    = string
-  default = "khang-kieu-demo"
+  default = "khangkieu"
 }
 
 variable "pod_cidr" {

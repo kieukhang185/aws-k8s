@@ -1,3 +1,4 @@
+# --- EC2 Control Plane ---
 data "aws_ami" "ubuntu_jammy" {
   most_recent = true
   owners      = ["099720109477"]
@@ -16,16 +17,16 @@ data "aws_ami" "ubuntu_jammy" {
   }
 }
 
-# locals {
-#   cp_user_data = templatefile("${path.module}/user_data/control-plane.sh.tmpl", {
-#     POD_CIDR                = var.pod_cidr
-#     AWS_REGION              = var.region
-#     SSM_JOIN_PARAMETER_NAME = var.ssm_join_parameter_name
-#     OIDC_ISSUER_URL         = var.oidc_issuer_url
-#     SA_PRIVATE_KEY_PATH     = var.sa_private_key_path
-#     SA_PUBLIC_KEY_PATH      = var.sa_public_key_path
-#   })
-# }
+locals {
+  cp_user_data = templatefile("${path.module}/user_data/control-plane.sh.tmpl", {
+    POD_CIDR                = var.pod_cidr
+    AWS_REGION              = var.region
+    SSM_JOIN_PARAMETER_NAME = var.ssm_join_parameter_name
+    OIDC_ISSUER_URL         = var.oidc_issuer_url
+    SA_PRIVATE_KEY_PEM     = file(var.sa_private_key_path)
+    SA_PUBLIC_KEY_PEM      = file(var.sa_public_key_path)
+  })
+}
 
 
 # An error occurred (AccessDeniedException) when calling the StartSession operation: User: arn:aws:sts::116981769322:assumed-role/vtd-devops-khangkieu-ec2-role/i-0a66c24bc771f3736 
@@ -40,15 +41,7 @@ resource "aws_instance" "control_plane" {
   associate_public_ip_address = false
   key_name               = var.key_pair_name != "" ? var.key_pair_name : null
 
-#   user_data = base64encode(local.cp_user_data)
-
-  ingress {
-    description = "Allow all traffic within the SG"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    self        = true
-  }
+  user_data = base64encode(local.cp_user_data)
 
   tags = {
     Name      = "${var.project}-cp"
